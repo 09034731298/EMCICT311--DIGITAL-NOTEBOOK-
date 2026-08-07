@@ -1,0 +1,88 @@
+<script>
+let notes = JSON.parse(localStorage.getItem('notes')) || [];
+let activeId = null;
+
+function save() {
+  localStorage.setItem('notes', JSON.stringify(notes));
+}
+
+function render() {
+  const list = document.getElementById('notesList');
+  const search = document.getElementById('search').value.toLowerCase();
+  const sort = document.getElementById('sort').value;
+
+  let filtered = notes.filter(n =>
+    n.title.toLowerCase().includes(search) ||
+    n.content.toLowerCase().includes(search)
+  );
+
+  filtered.sort((a,b) => {
+    if(a.pinned!== b.pinned) return b.pinned - a.pinned;
+    return sort === 'title'? a.title.localeCompare(b.title) : b.date - a.date;
+  });
+
+  list.innerHTML = filtered.map(n => `
+    <div class="note-item ${activeId === n.id? 'active' : ''} ${n.pinned? 'pinned' : ''}" onclick="openNote('${n.id}')">
+      <div class="title">${n.title || 'Untitled'}</div>
+      <div class="preview">${n.content.substring(0,50)}</div>
+    </div>
+  `).join('');
+}
+
+function newNote() {
+  const note = {id: Date.now(), title:'Untitled', content:'', date:Date.now(), pinned:false};
+  notes.unshift(note);
+  activeId = note.id;
+  save(); render(); openNote(note.id);
+}
+
+function openNote(id) {
+  activeId = id;
+  const note = notes.find(n => n.id == id);
+  document.getElementById('noteTitle').value = note.title;
+  document.getElementById('noteContent').value = note.content;
+  render();
+}
+
+function deleteNote() {
+  if(!activeId) return;
+  if(!confirm('Delete this note?')) return; // extra safety
+  notes = notes.filter(n => n.id!= activeId);
+  activeId = null;
+  document.getElementById('noteTitle').value = '';
+  document.getElementById('noteContent').value = '';
+  save(); render();
+  if(notes.length > 0) openNote(notes[0].id);
+}
+
+function togglePin() {
+  const note = notes.find(n => n.id == activeId);
+  if(note){ note.pinned =!note.pinned; save(); render(); }
+}
+
+// PREVENT EMPTY NOTES LOGIC
+document.getElementById('noteTitle').oninput = e => {
+  const note = notes.find(n => n.id == activeId);
+  if(note){ 
+    note.title = e.target.value.trim() || 'Untitled'; 
+    note.date = Date.now(); 
+    save(); render(); 
+  }
+}
+document.getElementById('noteContent').oninput = e => {
+  const note = notes.find(n => n.id == activeId);
+  if(note){ 
+    // Don't save if both title is 'Untitled' and content is empty
+    if(e.target.value.trim() === '' && note.title === 'Untitled'){
+      return; 
+    }
+    note.content = e.target.value; 
+    note.date = Date.now(); 
+    save(); render(); 
+  }
+}
+document.getElementById('search').oninput = render;
+document.getElementById('sort').onchange = render;
+
+if(notes.length === 0) newNote(); else openNote(notes[0].id);
+</script>
