@@ -5,13 +5,89 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EMCICT311 Digital Notebook</title>
 <style>
-    * { box-sizing: border-box; }
-  body { font-family: Arial; background: #f4f4f4; margin: 0; padding: 20px; }
-  h1 { text-align: center; color: #333; }
- .container { display: flex; gap: 20px; max-width: 1100px; margin: auto; flex-wrap: wrap; }
-  #list { flex: 1; min-width: 300px; background: white; padding: 15px; border-radius: 8px; height: 80vh; overflow-y: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-  #editor { flex: 2; min-width: 300px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-  input, textarea, select, button { width: 100%; margin: 8px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
-  button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
-  button:hover { background: #0056b3; }
- .note { padding: 10px; border-bottom: 1px solid #eee; cursor:
+body { font-family: Arial; background: #f4f4f4; margin: 0; padding: 20px; }
+h1 { text-align: center; color: #333; }
+.container { display: flex; gap: 20px; max-width: 1100px; margin: auto; flex-wrap: wrap; }
+#list { flex: 1; min-width: 300px; background: white; padding: 15px; border-radius: 8px; height: 80vh; overflow-y: auto; }
+#editor { flex: 2; min-width: 300px; background: white; padding: 15px; border-radius: 8px; }
+input, textarea, select, button { width: 100%; margin: 8px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+.note { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+.note.pinned { background: #fffbcc; }
+.note.active { background: #cce5ff; }
+</style>
+</head>
+<body>
+<h1>EMCICT311 Digital Notebook</h1>
+<div class="container">
+  <div id="list">
+    <input type="text" id="search" placeholder="Search notes...">
+    <select id="sort"><option value="date">Sort by Date</option><option value="title">Sort by Title</option></select>
+    <button onclick="newNote()">+ New Note</button>
+    <div id="noteList"></div>
+  </div>
+  <div id="editor">
+    <input type="text" id="noteTitle" placeholder="Note Title">
+    <textarea id="noteContent" rows="20" placeholder="Write here..."></textarea>
+    <button onclick="togglePin()">Pin / Unpin</button>
+    <button onclick="deleteNote()">Delete Note</button>
+  </div>
+</div>
+
+<script>
+let notes = JSON.parse(localStorage.getItem('notes')) || [];
+let activeId = null;
+
+function save() { localStorage.setItem('notes', JSON.stringify(notes)); }
+
+function render() {
+  let list = document.getElementById('noteList');
+  let search = document.getElementById('search').value.toLowerCase();
+  let sort = document.getElementById('sort').value;
+  let filtered = notes.filter(n => n.title.toLowerCase().includes(search) || n.content.toLowerCase().includes(search));
+  filtered.sort((a,b) => { if(a.pinned!=b.pinned) return b.pinned-a.pinned; return sort==='title'?a.title.localeCompare(b.title):b.date-a.date; });
+  list.innerHTML = '';
+  filtered.forEach(n => {
+    let div = document.createElement('div');
+    div.className = 'note ' + (n.pinned?'pinned ':'') + (n.id===activeId?'active':'');
+    div.innerHTML = '<b>'+(n.title||'Untitled')+'</b><br><small>'+new Date(n.date).toLocaleString()+'</small>';
+    div.onclick = () => loadNote(n.id);
+    list.appendChild(div);
+  });
+}
+
+function newNote() { 
+  let note = {id:Date.now(), title:'New Note', content:'', date:Date.now(), pinned:false};
+  notes.unshift(note); activeId=note.id; save(); render(); loadNote(note.id);
+}
+
+function loadNote(id) { 
+  activeId=id; let note=notes.find(n=>n.id===id); 
+  if(note){ document.getElementById('noteTitle').value=note.title; document.getElementById('noteContent').value=note.content; }
+  render();
+}
+
+function togglePin() { 
+  let note=notes.find(n=>n.id===activeId); 
+  if(note){ note.pinned=!note.pinned; note.date=Date.now(); save(); render(); }
+}
+
+function deleteNote() { 
+  if(confirm('Delete this note?')){
+    notes=notes.filter(n=>n.id!==activeId); 
+    activeId=notes.length>0?notes[0].id:null;
+    if(activeId) loadNote(activeId); else {document.getElementById('noteTitle').value='';document.getElementById('noteContent').value='';}
+    save(); render();
+  }
+}
+
+document.getElementById('noteTitle').oninput=function(e){ let note=notes.find(n=>n.id===activeId); if(note){note.title=e.target.value;note.date=Date.now();save();render();}}
+document.getElementById('noteContent').oninput=function(e){ let note=notes.find(n=>n.id===activeId); if(note){note.content=e.target.value;note.date=Date.now();save();render();}}
+document.getElementById('search').oninput=render;
+document.getElementById('sort').onchange=render;
+
+if(notes.length===0) newNote(); else loadNote(notes[0].id);
+render();
+</script>
+</body>
+   </html>
