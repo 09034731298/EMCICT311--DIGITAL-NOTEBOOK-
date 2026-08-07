@@ -1,3 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMCICT311 Digital Notebook</title>
+<style>
+  body { font-family: Arial; background: #f4f4f4; margin: 0; padding: 20px; }
+  h1 { text-align: center; }
+  .container { display: flex; gap: 20px; max-width: 1000px; margin: auto; }
+  #list { width: 30%; background: white; padding: 10px; border-radius: 8px; height: 80vh; overflow-y: auto; }
+  #editor { width: 70%; background: white; padding: 10px; border-radius: 8px; }
+  input, textarea, select, button { width: 100%; margin: 5px 0; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+  .note { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
+  .note.pinned { background: #fffbcc; }
+</style>
+</head>
+<body>
+<h1>EMCICT311 Digital Notebook</h1>
+<div class="container">
+  <div id="list">
+    <input type="text" id="search" placeholder="Search notes...">
+    <select id="sort">
+      <option value="date">Sort by Date</option>
+      <option value="title">Sort by Title</option>
+    </select>
+    <button onclick="newNote()">+ New Note</button>
+    <div id="noteList"></div>
+  </div>
+  <div id="editor">
+    <input type="text" id="noteTitle" placeholder="Note Title">
+    <textarea id="noteContent" rows="20" placeholder="Write your note..."></textarea>
+    <button onclick="togglePin()">📌 Pin/Unpin</button>
+    <button onclick="deleteNote()">🗑️ Delete</button>
+  </div>
+</div>
+
 <script>
 let notes = JSON.parse(localStorage.getItem('notes')) || [];
 let activeId = null;
@@ -7,82 +44,55 @@ function save() {
 }
 
 function render() {
-  const list = document.getElementById('notesList');
+  const list = document.getElementById('noteList');
   const search = document.getElementById('search').value.toLowerCase();
   const sort = document.getElementById('sort').value;
 
-  let filtered = notes.filter(n =>
-    n.title.toLowerCase().includes(search) ||
+  let filtered = notes.filter(n => 
+    n.title.toLowerCase().includes(search) || 
     n.content.toLowerCase().includes(search)
   );
 
   filtered.sort((a,b) => {
-    if(a.pinned!== b.pinned) return b.pinned - a.pinned;
-    return sort === 'title'? a.title.localeCompare(b.title) : b.date - a.date;
+    if(a.pinned != b.pinned) return b.pinned - a.pinned;
+    return sort === 'title' ? a.title.localeCompare(b.title) : b.date - a.date;
   });
 
-  list.innerHTML = filtered.map(n => `
-    <div class="note-item ${activeId === n.id? 'active' : ''} ${n.pinned? 'pinned' : ''}" onclick="openNote('${n.id}')">
-      <div class="title">${n.title || 'Untitled'}</div>
-      <div class="preview">${n.content.substring(0,50)}</div>
-    </div>
-  `).join('');
+  list.innerHTML = filtered.map(n => 
+    `<div class="note ${n.pinned ? 'pinned' : ''}" onclick="loadNote(${n.id})">
+      <b>${n.title || 'Untitled'}</b><br>
+      <small>${new Date(n.date).toLocaleString()}</small>
+    </div>`
+  ).join('');
 }
 
 function newNote() {
-  const note = {id: Date.now(), title:'Untitled', content:'', date:Date.now(), pinned:false};
-  notes.unshift(note);
+  const note = { id: Date.now(), title: 'Untitled', content: '', date: Date.now(), pinned: false };
+  notes.push(note);
   activeId = note.id;
-  save(); render(); openNote(note.id);
+  save(); render(); loadNote(note.id);
 }
 
-function openNote(id) {
+function loadNote(id) {
   activeId = id;
-  const note = notes.find(n => n.id == id);
+  const note = notes.find(n => n.id === id);
   document.getElementById('noteTitle').value = note.title;
   document.getElementById('noteContent').value = note.content;
-  render();
+}
+
+function togglePin() {
+  const note = notes.find(n => n.id === activeId);
+  if(note){ note.pinned = !note.pinned; save(); render(); }
 }
 
 function deleteNote() {
-  if(!activeId) return;
-  if(!confirm('Delete this note?')) return; // extra safety
-  notes = notes.filter(n => n.id!= activeId);
+  notes = notes.filter(n => n.id !== activeId);
   activeId = null;
   document.getElementById('noteTitle').value = '';
   document.getElementById('noteContent').value = '';
   save(); render();
-  if(notes.length > 0) openNote(notes[0].id);
 }
 
-function togglePin() {
-  const note = notes.find(n => n.id == activeId);
-  if(note){ note.pinned =!note.pinned; save(); render(); }
-}
-
-// PREVENT EMPTY NOTES LOGIC
-document.getElementById('noteTitle').oninput = e => {
-  const note = notes.find(n => n.id == activeId);
-  if(note){ 
-    note.title = e.target.value.trim() || 'Untitled'; 
-    note.date = Date.now(); 
-    save(); render(); 
-  }
-}
-document.getElementById('noteContent').oninput = e => {
-  const note = notes.find(n => n.id == activeId);
-  if(note){ 
-    // Don't save if both title is 'Untitled' and content is empty
-    if(e.target.value.trim() === '' && note.title === 'Untitled'){
-      return; 
-    }
-    note.content = e.target.value; 
-    note.date = Date.now(); 
-    save(); render(); 
-  }
-}
-document.getElementById('search').oninput = render;
-document.getElementById('sort').onchange = render;
-
-if(notes.length === 0) newNote(); else openNote(notes[0].id);
-</script>
+document.getElementById('noteTitle').oninput = (e) => {
+  const note = notes.find(n => n.id === activeId);
+  if(note){ note.title = e.target.value; note.date = Date.now
