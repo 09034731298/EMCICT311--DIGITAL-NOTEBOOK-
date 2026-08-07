@@ -5,94 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EMCICT311 Digital Notebook</title>
 <style>
+    * { box-sizing: border-box; }
   body { font-family: Arial; background: #f4f4f4; margin: 0; padding: 20px; }
-  h1 { text-align: center; }
-  .container { display: flex; gap: 20px; max-width: 1000px; margin: auto; }
-  #list { width: 30%; background: white; padding: 10px; border-radius: 8px; height: 80vh; overflow-y: auto; }
-  #editor { width: 70%; background: white; padding: 10px; border-radius: 8px; }
-  input, textarea, select, button { width: 100%; margin: 5px 0; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-  .note { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
-  .note.pinned { background: #fffbcc; }
-</style>
-</head>
-<body>
-<h1>EMCICT311 Digital Notebook</h1>
-<div class="container">
-  <div id="list">
-    <input type="text" id="search" placeholder="Search notes...">
-    <select id="sort">
-      <option value="date">Sort by Date</option>
-      <option value="title">Sort by Title</option>
-    </select>
-    <button onclick="newNote()">+ New Note</button>
-    <div id="noteList"></div>
-  </div>
-  <div id="editor">
-    <input type="text" id="noteTitle" placeholder="Note Title">
-    <textarea id="noteContent" rows="20" placeholder="Write your note..."></textarea>
-    <button onclick="togglePin()">📌 Pin/Unpin</button>
-    <button onclick="deleteNote()">🗑️ Delete</button>
-  </div>
-</div>
-
-<script>
-let notes = JSON.parse(localStorage.getItem('notes')) || [];
-let activeId = null;
-
-function save() {
-  localStorage.setItem('notes', JSON.stringify(notes));
-}
-
-function render() {
-  const list = document.getElementById('noteList');
-  const search = document.getElementById('search').value.toLowerCase();
-  const sort = document.getElementById('sort').value;
-
-  let filtered = notes.filter(n => 
-    n.title.toLowerCase().includes(search) || 
-    n.content.toLowerCase().includes(search)
-  );
-
-  filtered.sort((a,b) => {
-    if(a.pinned != b.pinned) return b.pinned - a.pinned;
-    return sort === 'title' ? a.title.localeCompare(b.title) : b.date - a.date;
-  });
-
-  list.innerHTML = filtered.map(n => 
-    `<div class="note ${n.pinned ? 'pinned' : ''}" onclick="loadNote(${n.id})">
-      <b>${n.title || 'Untitled'}</b><br>
-      <small>${new Date(n.date).toLocaleString()}</small>
-    </div>`
-  ).join('');
-}
-
-function newNote() {
-  const note = { id: Date.now(), title: 'Untitled', content: '', date: Date.now(), pinned: false };
-  notes.push(note);
-  activeId = note.id;
-  save(); render(); loadNote(note.id);
-}
-
-function loadNote(id) {
-  activeId = id;
-  const note = notes.find(n => n.id === id);
-  document.getElementById('noteTitle').value = note.title;
-  document.getElementById('noteContent').value = note.content;
-}
-
-function togglePin() {
-  const note = notes.find(n => n.id === activeId);
-  if(note){ note.pinned = !note.pinned; save(); render(); }
-}
-
-function deleteNote() {
-  notes = notes.filter(n => n.id !== activeId);
-  activeId = null;
-  document.getElementById('noteTitle').value = '';
-  document.getElementById('noteContent').value = '';
-  save(); render();
-}
-
-document.getElementById('noteTitle').oninput = (e) => {
-  const note = notes.find(n => n.id === activeId);
-  if(note){ note.title = e.target.value; note.date = Date.now
+  h1 { text-align: center; color: #333; }
+ .container { display: flex; gap: 20px; max-width: 1100px; margin: auto; flex-wrap: wrap; }
+  #list { flex: 1; min-width: 300px; background: white; padding: 15px; border-radius: 8px; height: 80vh; overflow-y: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  #editor { flex: 2; min-width: 300px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  input, textarea, select, button { width: 100%; margin: 8px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+  button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+  button:hover { background: #0056b3; }
+ .note { padding: 10px; border-bottom: 1px solid #eee; cursor:
